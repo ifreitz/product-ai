@@ -40,11 +40,28 @@ def get_response(request):
     os.remove(file_path)  # Commented out to keep the temporary file
     
     model = genai.GenerativeModel(model_name="gemini-1.5-flash")
-    result = model.generate_content([file, "\n\n", "Based on the provided receipt in the image. Can you extract the information? Give me a response in a JSON format using this template:\n{\n  \"general_information\": {\n    \"receipt_number\": \"\",\n    \"date_of_receipt\": \"Use this format MM/DD/YYYY\",\n    \"issuer_name\": \"\",\n    \"issuer_tin\": \"\",\n    \"issuer_address\": \"\",\n    \"goods_or_services_description\": \"\",\n    \"total_amount\": 0.00,\n    \"payment_method\": \"\",\n    \"vat_amount\": 0.00,\n    \"vat_percentage\": 0.00,\n    \"payee_name\": \"\",\n    \"payee_tin\": \"\",\n    \"payee_address\": \"\",\n  },\n  \"accuracy\": {\n    \"accuracy_score\": \"Scale of 1-100\",\n    \"accuracy_message\": \"Message to user\"\n  }\n}"])
-    
     try:
-        result_json = json.loads(result.text)
-    except json.JSONDecodeError:
-        result_json = {"error": "Failed to decode JSON from the result."}
+        result = model.generate_content([file, "\n\n", "Based on the provided receipt in the image. Can you extract the information? Give me a response in a JSON format using this template:\n{\n  \"general_information\": {\n    \"receipt_number\": \"\",\n    \"date_of_receipt\": \"Use this format MM/DD/YYYY\",\n    \"issuer_name\": \"\",\n    \"issuer_tin\": \"\",\n    \"issuer_address\": \"\",\n    \"goods_or_services_description\": \"\",\n    \"total_amount\": 0.00,\n    \"payment_method\": \"\",\n    \"vat_amount\": 0.00,\n    \"vat_percentage\": 0.00,\n    \"payee_name\": \"\",\n    \"payee_tin\": \"\",\n    \"payee_address\": \"\",\n  },\n  \"accuracy\": {\n    \"accuracy_score\": \"Scale of 1-100\",\n    \"accuracy_message\": \"Message to user\"\n  }\n}"])
+        
+        # Clean up the response text to ensure it's valid JSON
+        response_text = result.text.strip()
+        # Sometimes the model might wrap the JSON in markdown code blocks
+        if response_text.startswith('```') and response_text.endswith('```'):
+            response_text = response_text[response_text.find('{'):response_text.rfind('}')+1]
+        
+        result_json = json.loads(response_text)
+    except json.JSONDecodeError as e:
+        print(f"JSON Decode Error: {str(e)}")
+        print(f"Raw response: {result.text}")
+        result_json = {
+            "error": "Failed to decode JSON from the result.",
+            "raw_response": result.text
+        }
+    except Exception as e:
+        print(f"Unexpected error: {str(e)}")
+        result_json = {
+            "error": "An unexpected error occurred while processing the request.",
+            "details": str(e)
+        }
 
     return JsonResponse(result_json)
