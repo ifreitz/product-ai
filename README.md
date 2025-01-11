@@ -43,3 +43,8 @@ The platform can be easily integrated into existing systems through our API endp
 ## Contributing
 
 Contributions are welcome! Please feel free to submit pull requests.
+
+## Photos
+
+![alt text](image.png)
+![alt text](image-1.png)
